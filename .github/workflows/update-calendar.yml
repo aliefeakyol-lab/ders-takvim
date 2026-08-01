@@ -1,0 +1,48 @@
+name: Ders Takvimini Güncelle
+
+on:
+  # Her 6 saatte bir otomatik çalıştır
+  schedule:
+    - cron: '0 */6 * * *'
+
+  # Manuel tetikleme (isteğe bağlı)
+  workflow_dispatch:
+
+  # Push yapıldığında da çalıştır (ilk kurulum için)
+  push:
+    branches: [main]
+    paths:
+      - 'sheets_to_ics.py'
+      - 'requirements.txt'
+      - '.github/workflows/update-calendar.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update-calendar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate .ics file
+        run: python sheets_to_ics.py
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add docs/ders-programi.ics
+          # Sadece değişiklik varsa commit yap
+          git diff --staged --quiet || git commit -m "🗓️ Ders takvimi güncellendi ($(date -u '+%Y-%m-%d %H:%M UTC'))"
+          git push
